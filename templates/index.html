@@ -186,6 +186,24 @@
             border-bottom: 1px solid #00ff88;
             font-weight: bold;
             color: #00ff88;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .clear-history-btn {
+            background: rgba(255, 107, 107, 0.2);
+            border: 1px solid #ff6b6b;
+            color: #ff6b6b;
+            padding: 5px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        
+        .clear-history-btn:hover {
+            background: rgba(255, 107, 107, 0.3);
         }
         
         .chat-messages {
@@ -458,7 +476,10 @@
         
         <!-- Left Panel: Chat -->
         <div class="chat-panel">
-            <div class="panel-header">💬 AI Coding Assistant</div>
+            <div class="panel-header">
+                <span>💬 AI Coding Assistant</span>
+                <button class="clear-history-btn" onclick="clearHistory()">🗑️ Clear History</button>
+            </div>
             <div class="chat-messages" id="chat-messages">
                 <div class="message assistant">
                     <div class="message-header">🔥 Forge</div>
@@ -512,7 +533,58 @@ What would you like to build today?</div>
         // Load snippets on page load
         window.addEventListener('load', function() {
             loadSnippets();
+            loadHistory();
         });
+        
+        // Load conversation history
+        async function loadHistory() {
+            try {
+                const response = await fetch('/api/history');
+                const data = await response.json();
+                
+                if (data.history && data.history.length > 0) {
+                    // Display last 10 exchanges
+                    data.history.forEach(msg => {
+                        if (msg.role === 'user') {
+                            // Remove language tag for display
+                            const content = msg.content.replace(/^\[Language: \w+\]\n\n/, '');
+                            addMessageToUI('user', content);
+                        } else {
+                            addMessageToUI('assistant', msg.content);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading history:', error);
+            }
+        }
+        
+        async function clearHistory() {
+            if (!confirm('🗑️ Clear all conversation history? This cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/history/clear', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Clear UI
+                    document.getElementById('chat-messages').innerHTML = `
+                        <div class="message assistant">
+                            <div class="message-header">🔥 Forge</div>
+                            <div class="message-content">History cleared! Ready for a fresh start. What would you like to build today?</div>
+                        </div>
+                    `;
+                    conversationHistory = [];
+                }
+            } catch (error) {
+                alert('Error clearing history: ' + error.message);
+            }
+        }
         
         // Snippet Management
         async function loadSnippets() {
@@ -723,6 +795,22 @@ What would you like to build today?</div>
         }
         
         function addMessage(role, content) {
+            // Add to UI
+            addMessageToUI(role, content);
+            
+            // Update conversation history
+            conversationHistory.push({
+                role: role,
+                content: content
+            });
+            
+            // Keep history manageable (last 20 messages)
+            if (conversationHistory.length > 20) {
+                conversationHistory = conversationHistory.slice(-20);
+            }
+        }
+        
+        function addMessageToUI(role, content) {
             const messagesDiv = document.getElementById('chat-messages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${role}`;
@@ -741,17 +829,6 @@ What would you like to build today?</div>
             
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
-            
-            // Update conversation history
-            conversationHistory.push({
-                role: role,
-                content: content
-            });
-            
-            // Keep history manageable (last 20 messages)
-            if (conversationHistory.length > 20) {
-                conversationHistory = conversationHistory.slice(-20);
-            }
         }
         
         function extractCodeBlocks(text) {
