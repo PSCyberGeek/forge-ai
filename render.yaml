@@ -1,0 +1,7 @@
+# Render.com deployment configuration
+
+# Build Command (run during deployment)
+pip install -r requirements.txt
+
+# Start Command (run to start the app)
+gunicorn forge_app:app
