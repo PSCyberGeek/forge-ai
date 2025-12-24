@@ -62,10 +62,112 @@
         /* Main Container */
         .container {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 250px 1fr 1fr;
             gap: 20px;
             padding: 20px;
             height: calc(100vh - 70px);
+        }
+        
+        /* Snippet Sidebar */
+        .snippet-sidebar {
+            background: #1a1a2e;
+            border: 2px solid #ffd700;
+            border-radius: 15px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .snippet-header {
+            background: rgba(255, 215, 0, 0.1);
+            padding: 15px;
+            border-bottom: 1px solid #ffd700;
+            font-weight: bold;
+            color: #ffd700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .snippet-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .snippet-category {
+            margin-bottom: 15px;
+        }
+        
+        .category-title {
+            color: #ffd700;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            padding: 5px;
+            text-transform: uppercase;
+        }
+        
+        .snippet-item {
+            background: rgba(0, 150, 255, 0.1);
+            border-left: 3px solid #0096ff;
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .snippet-item:hover {
+            background: rgba(0, 150, 255, 0.2);
+            transform: translateX(5px);
+        }
+        
+        .snippet-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .snippet-delete {
+            color: #ff6b6b;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .snippet-delete:hover {
+            background: rgba(255, 107, 107, 0.2);
+        }
+        
+        .new-snippet-btn {
+            background: rgba(255, 215, 0, 0.2);
+            border: 1px solid #ffd700;
+            color: #ffd700;
+            padding: 10px;
+            margin: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .new-snippet-btn:hover {
+            background: rgba(255, 215, 0, 0.3);
+        }
+        
+        .empty-snippets {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+            font-size: 12px;
         }
         
         /* Left Panel - Chat */
@@ -343,6 +445,17 @@
     </div>
     
     <div class="container">
+        <!-- Snippet Sidebar -->
+        <div class="snippet-sidebar">
+            <div class="snippet-header">
+                📚 My Snippets
+            </div>
+            <div class="snippet-list" id="snippet-list">
+                <div class="empty-snippets">No snippets saved yet.<br>Save your first one!</div>
+            </div>
+            <div class="new-snippet-btn" onclick="saveSnippet()">💾 Save Current Code</div>
+        </div>
+        
         <!-- Left Panel: Chat -->
         <div class="chat-panel">
             <div class="panel-header">💬 AI Coding Assistant</div>
@@ -394,6 +507,155 @@ What would you like to build today?</div>
     <script>
         let currentLanguage = 'python';
         let conversationHistory = [];
+        let snippets = [];
+        
+        // Load snippets on page load
+        window.addEventListener('load', function() {
+            loadSnippets();
+        });
+        
+        // Snippet Management
+        async function loadSnippets() {
+            try {
+                const response = await fetch('/api/snippets');
+                const data = await response.json();
+                snippets = data.snippets || [];
+                renderSnippets();
+            } catch (error) {
+                console.error('Error loading snippets:', error);
+            }
+        }
+        
+        function renderSnippets() {
+            const listDiv = document.getElementById('snippet-list');
+            
+            if (snippets.length === 0) {
+                listDiv.innerHTML = '<div class="empty-snippets">No snippets saved yet.<br>Save your first one!</div>';
+                return;
+            }
+            
+            // Group by language
+            const grouped = {
+                python: snippets.filter(s => s.language === 'python'),
+                powershell: snippets.filter(s => s.language === 'powershell')
+            };
+            
+            let html = '';
+            
+            if (grouped.python.length > 0) {
+                html += '<div class="snippet-category">';
+                html += '<div class="category-title">🐍 Python</div>';
+                grouped.python.forEach(snippet => {
+                    html += `
+                        <div class="snippet-item" onclick="loadSnippet('${snippet.id}')">
+                            <span class="snippet-name">${escapeHtml(snippet.name)}</span>
+                            <span class="snippet-delete" onclick="event.stopPropagation(); deleteSnippet('${snippet.id}')">🗑️</span>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+            
+            if (grouped.powershell.length > 0) {
+                html += '<div class="snippet-category">';
+                html += '<div class="category-title">⚡ PowerShell</div>';
+                grouped.powershell.forEach(snippet => {
+                    html += `
+                        <div class="snippet-item" onclick="loadSnippet('${snippet.id}')">
+                            <span class="snippet-name">${escapeHtml(snippet.name)}</span>
+                            <span class="snippet-delete" onclick="event.stopPropagation(); deleteSnippet('${snippet.id}')">🗑️</span>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+            
+            listDiv.innerHTML = html;
+        }
+        
+        async function saveSnippet() {
+            const code = document.getElementById('code-input').value.trim();
+            
+            if (!code) {
+                alert('❌ No code to save! Write some code first.');
+                return;
+            }
+            
+            const name = prompt('💾 Name this snippet:', '');
+            
+            if (!name) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/snippets', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        name: name.trim(),
+                        code: code,
+                        language: currentLanguage
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    snippets.push(data.snippet);
+                    renderSnippets();
+                    alert('✅ Snippet saved!');
+                } else {
+                    alert('❌ Error: ' + (data.error || 'Failed to save'));
+                }
+            } catch (error) {
+                alert('❌ Error saving snippet: ' + error.message);
+            }
+        }
+        
+        function loadSnippet(snippetId) {
+            const snippet = snippets.find(s => s.id == snippetId);
+            if (snippet) {
+                document.getElementById('code-input').value = snippet.code;
+                
+                // Switch language if needed
+                if (snippet.language !== currentLanguage) {
+                    currentLanguage = snippet.language;
+                    document.querySelectorAll('.lang-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                        if (btn.dataset.lang === snippet.language) {
+                            btn.classList.add('active');
+                        }
+                    });
+                }
+                
+                // Show confirmation
+                const output = document.getElementById('output-console');
+                output.innerHTML = `<div class="output-line info">✅ Loaded: ${escapeHtml(snippet.name)}</div>`;
+            }
+        }
+        
+        async function deleteSnippet(snippetId) {
+            if (!confirm('🗑️ Delete this snippet?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/snippets/${snippetId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    snippets = snippets.filter(s => s.id != snippetId);
+                    renderSnippets();
+                } else {
+                    alert('❌ Error deleting snippet');
+                }
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
+        }
         
         // Language selector
         document.querySelectorAll('.lang-btn').forEach(btn => {
