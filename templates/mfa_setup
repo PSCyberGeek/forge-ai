@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 Forge - MFA Setup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+        
+        .setup-container {
+            background: rgba(26, 26, 46, 0.9);
+            border: 2px solid #00ff88;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 255, 136, 0.2);
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #00ff88;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .step {
+            background: rgba(0, 255, 136, 0.05);
+            border-left: 3px solid #00ff88;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        
+        .step-number {
+            color: #00ff88;
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        
+        .step-content {
+            line-height: 1.6;
+        }
+        
+        .qr-code {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+        }
+        
+        .qr-code img {
+            max-width: 250px;
+            height: auto;
+        }
+        
+        .secret-code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            color: #00ff88;
+            margin: 20px 0;
+            word-break: break-all;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+        
+        button, .button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .primary-btn {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            color: #0a0e27;
+        }
+        
+        .primary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 255, 136, 0.4);
+        }
+        
+        .secondary-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+            border: 1px solid #333;
+        }
+        
+        .secondary-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .warning {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #ffc107;
+        }
+        
+        .apps-list {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .apps-list li {
+            padding: 5px 0;
+        }
+        
+        .apps-list li:before {
+            content: "📱 ";
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <h1>🔐 Set Up Two-Factor Authentication</h1>
+        <p class="subtitle">Secure your Forge with Google Authenticator</p>
+        
+        <div class="step">
+            <div class="step-number">Step 1: Download Authenticator App</div>
+            <div class="step-content">
+                Download one of these apps on your phone:
+                <ul class="apps-list">
+                    <li><strong>Google Authenticator</strong> (iOS/Android)</li>
+                    <li><strong>Microsoft Authenticator</strong> (iOS/Android)</li>
+                    <li><strong>Authy</strong> (iOS/Android)</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">Step 2: Scan QR Code</div>
+            <div class="step-content">
+                Open your authenticator app and scan this QR code:
+                <div class="qr-code">
+                    <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code">
+                </div>
+                
+                <strong>Can't scan?</strong> Enter this code manually:
+                <div class="secret-code">{{ secret }}</div>
+            </div>
+        </div>
+        
+        <div class="step">
+            <div class="step-number">Step 3: Save Your Secret</div>
+            <div class="step-content">
+                <strong>Important:</strong> Write down or save the secret code above somewhere safe!
+                <br><br>
+                If you lose your phone, you'll need this code to access your account.
+            </div>
+        </div>
+        
+        <div class="warning">
+            ⚠️ <strong>Security Note:</strong> From now on, you'll need both your password AND a 6-digit code from your authenticator app to login. Make sure you save your secret code!
+        </div>
+        
+        <div class="button-group">
+            <a href="/" class="button primary-btn">Done! Go to Forge 🚀</a>
+            <button class="button secondary-btn" onclick="window.print()">🖨️ Print This Page</button>
+        </div>
+    </div>
+</body>
+</html>
