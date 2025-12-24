@@ -128,26 +128,24 @@
                 required 
                 autofocus
             >
-            {% if mfa_enabled and show_mfa %}
+            {% if mfa_enabled %}
             <input 
                 type="text" 
                 name="mfa_code" 
-                placeholder="6-digit code from app" 
+                placeholder="6-digit MFA code from Google Authenticator" 
                 pattern="[0-9]{6}"
                 maxlength="6"
                 required
-                style="margin-top: 15px;"
+                style="margin-top: 15px; padding: 20px; font-size: 20px; text-align: center; letter-spacing: 8px; font-weight: bold;"
             >
-            <div style="font-size: 12px; color: #888; margin-top: 10px;">
-                Open Google Authenticator and enter the 6-digit code
+            <div style="font-size: 13px; color: #00ff88; margin-top: 10px; text-align: center;">
+                📱 Open Google Authenticator app for 6-digit code
             </div>
-            {% if show_setup_link %}
-            <div style="margin-top: 15px;">
-                <a href="/mfa-setup" style="color: #00ff88; font-size: 13px; text-decoration: none;">
-                    📱 First time? Set up Google Authenticator →
+            <div style="margin-top: 15px; text-align: center;">
+                <a href="/mfa-setup" style="color: #888; font-size: 12px; text-decoration: none;">
+                    First time? Click here to set up MFA →
                 </a>
             </div>
-            {% endif %}
             {% endif %}
             <button type="submit">Unlock Forge 🔓</button>
         </form>
