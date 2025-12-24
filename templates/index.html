@@ -500,6 +500,8 @@ What would you like to build today?</div>
                 <div class="language-selector">
                     <button class="lang-btn active" data-lang="python">🐍 Python</button>
                     <button class="lang-btn" data-lang="powershell">⚡ PowerShell</button>
+                    <button class="lang-btn" data-lang="bash">🐧 Bash</button>
+                    <button class="lang-btn" data-lang="json">📋 JSON</button>
                 </div>
                 <div class="input-row">
                     <textarea id="user-input" placeholder="Describe what you need or paste code to debug..."></textarea>
@@ -609,7 +611,9 @@ What would you like to build today?</div>
             // Group by language
             const grouped = {
                 python: snippets.filter(s => s.language === 'python'),
-                powershell: snippets.filter(s => s.language === 'powershell')
+                powershell: snippets.filter(s => s.language === 'powershell'),
+                bash: snippets.filter(s => s.language === 'bash'),
+                json: snippets.filter(s => s.language === 'json')
             };
             
             let html = '';
@@ -632,6 +636,34 @@ What would you like to build today?</div>
                 html += '<div class="snippet-category">';
                 html += '<div class="category-title">⚡ PowerShell</div>';
                 grouped.powershell.forEach(snippet => {
+                    html += `
+                        <div class="snippet-item" onclick="loadSnippet('${snippet.id}')">
+                            <span class="snippet-name">${escapeHtml(snippet.name)}</span>
+                            <span class="snippet-delete" onclick="event.stopPropagation(); deleteSnippet('${snippet.id}')">🗑️</span>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+            
+            if (grouped.bash.length > 0) {
+                html += '<div class="snippet-category">';
+                html += '<div class="category-title">🐧 Bash</div>';
+                grouped.bash.forEach(snippet => {
+                    html += `
+                        <div class="snippet-item" onclick="loadSnippet('${snippet.id}')">
+                            <span class="snippet-name">${escapeHtml(snippet.name)}</span>
+                            <span class="snippet-delete" onclick="event.stopPropagation(); deleteSnippet('${snippet.id}')">🗑️</span>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+            
+            if (grouped.json.length > 0) {
+                html += '<div class="snippet-category">';
+                html += '<div class="category-title">📋 JSON</div>';
+                grouped.json.forEach(snippet => {
                     html += `
                         <div class="snippet-item" onclick="loadSnippet('${snippet.id}')">
                             <span class="snippet-name">${escapeHtml(snippet.name)}</span>
