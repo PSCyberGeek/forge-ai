@@ -56,7 +56,7 @@
             font-size: 14px;
         }
         
-        input[type="password"] {
+        input[type="password"], input[type="text"] {
             width: 100%;
             padding: 15px;
             background: rgba(0, 0, 0, 0.3);
@@ -64,11 +64,20 @@
             border-radius: 10px;
             color: #e0e0e0;
             font-size: 16px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             transition: all 0.3s;
         }
         
-        input[type="password"]:focus {
+        input[type="text"] {
+            padding: 20px;
+            font-size: 24px;
+            text-align: center;
+            letter-spacing: 10px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+        
+        input:focus {
             outline: none;
             border-color: #00ff88;
             box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
@@ -85,6 +94,7 @@
             font-weight: bold;
             cursor: pointer;
             transition: all 0.3s;
+            margin-top: 10px;
         }
         
         button:hover {
@@ -99,6 +109,30 @@
             padding: 12px;
             border-radius: 8px;
             margin-bottom: 20px;
+        }
+        
+        .mfa-hint {
+            font-size: 14px;
+            color: #00ff88;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .setup-link {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #333;
+        }
+        
+        .setup-link a {
+            color: #888;
+            font-size: 12px;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .setup-link a:hover {
+            color: #00ff88;
         }
         
         .info {
@@ -128,26 +162,23 @@
                 required 
                 autofocus
             >
-            {% if mfa_enabled %}
+            
+            <div class="mfa-hint">📱 Google Authenticator Code:</div>
             <input 
                 type="text" 
                 name="mfa_code" 
-                placeholder="6-digit MFA code from Google Authenticator" 
+                placeholder="000000" 
                 pattern="[0-9]{6}"
                 maxlength="6"
                 required
-                style="margin-top: 15px; padding: 20px; font-size: 20px; text-align: center; letter-spacing: 8px; font-weight: bold;"
+                inputmode="numeric"
             >
-            <div style="font-size: 13px; color: #00ff88; margin-top: 10px; text-align: center;">
-                📱 Open Google Authenticator app for 6-digit code
-            </div>
-            <div style="margin-top: 15px; text-align: center;">
-                <a href="/mfa-setup" style="color: #888; font-size: 12px; text-decoration: none;">
-                    First time? Click here to set up MFA →
-                </a>
-            </div>
-            {% endif %}
+            
             <button type="submit">Unlock Forge 🔓</button>
+            
+            <div class="setup-link">
+                <a href="/mfa-setup">First time? Click here to set up MFA →</a>
+            </div>
         </form>
         
         <div class="info">
