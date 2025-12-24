@@ -249,14 +249,26 @@ def login():
         if password != FORGE_PASSWORD:
             return render_template('login.html', error='Invalid password', mfa_enabled=MFA_ENABLED)
         
+        # Mark password as verified (allows MFA setup access)
+        session['password_verified'] = True
+        
         # If MFA is enabled, verify the code
         if MFA_ENABLED:
             if not mfa_code:
-                return render_template('login.html', error='MFA code required', mfa_enabled=MFA_ENABLED, show_mfa=True)
+                # Show MFA input and setup link
+                return render_template('login.html', 
+                                     error='MFA code required', 
+                                     mfa_enabled=MFA_ENABLED, 
+                                     show_mfa=True,
+                                     show_setup_link=True)
             
             totp = pyotp.TOTP(MFA_SECRET)
             if not totp.verify(mfa_code, valid_window=1):
-                return render_template('login.html', error='Invalid MFA code', mfa_enabled=MFA_ENABLED, show_mfa=True)
+                return render_template('login.html', 
+                                     error='Invalid MFA code', 
+                                     mfa_enabled=MFA_ENABLED, 
+                                     show_mfa=True,
+                                     show_setup_link=True)
         
         # Login successful
         session['logged_in'] = True
@@ -273,11 +285,14 @@ def logout():
     return redirect(url_for('login'))
 
 @app.route('/mfa-setup')
-@login_required
 def mfa_setup():
     """Show MFA setup page with QR code"""
     if not MFA_ENABLED:
         return redirect(url_for('index'))
+    
+    # Allow access if password was correct (even without MFA code yet)
+    if not session.get('password_verified') and not session.get('logged_in'):
+        return redirect(url_for('login'))
     
     # Generate QR code
     totp_uri = pyotp.totp.TOTP(MFA_SECRET).provisioning_uri(
