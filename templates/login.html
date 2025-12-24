@@ -141,6 +141,13 @@
             <div style="font-size: 12px; color: #888; margin-top: 10px;">
                 Open Google Authenticator and enter the 6-digit code
             </div>
+            {% if show_setup_link %}
+            <div style="margin-top: 15px;">
+                <a href="/mfa-setup" style="color: #00ff88; font-size: 13px; text-decoration: none;">
+                    📱 First time? Set up Google Authenticator →
+                </a>
+            </div>
+            {% endif %}
             {% endif %}
             <button type="submit">Unlock Forge 🔓</button>
         </form>
