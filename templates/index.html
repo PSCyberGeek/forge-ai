@@ -804,7 +804,24 @@ What would you like to build today?</div>
                     })
                 });
                 
-                const data = await response.json();
+                // Check if response is ok
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Server error: ${response.status} - ${errorText}`);
+                }
+                
+                // Get response text first
+                const responseText = await response.text();
+                
+                // Try to parse as JSON
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (parseError) {
+                    console.error('JSON parse error:', parseError);
+                    console.error('Response text:', responseText);
+                    throw new Error('Invalid response from server. Check Render logs for details.');
+                }
                 
                 if (data.success) {
                     addMessage('assistant', data.response);
@@ -818,7 +835,8 @@ What would you like to build today?</div>
                     addMessage('assistant', '❌ Error: ' + data.error);
                 }
             } catch (error) {
-                addMessage('assistant', '❌ Connection error: ' + error.message);
+                console.error('Full error:', error);
+                addMessage('assistant', '❌ Error: ' + error.message + '\n\nCheck browser console (F12) for details.');
             }
             
             // Re-enable send button
