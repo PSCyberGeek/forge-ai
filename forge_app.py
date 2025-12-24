@@ -30,20 +30,20 @@ FORGE_PASSWORD = os.environ.get('FORGE_PASSWORD', 'forge123')  # Change this!
 
 # MFA Configuration
 MFA_ENABLED = os.environ.get('MFA_ENABLED', 'true').lower() == 'true'
-MFA_SECRET_FILE = os.path.join(os.path.dirname(__file__), 'mfa_secret.txt')
 
-def get_or_create_mfa_secret():
-    """Get existing MFA secret or create new one"""
-    if os.path.exists(MFA_SECRET_FILE):
-        with open(MFA_SECRET_FILE, 'r') as f:
-            return f.read().strip()
-    else:
-        secret = pyotp.random_base32()
-        with open(MFA_SECRET_FILE, 'w') as f:
-            f.write(secret)
-        return secret
-
-MFA_SECRET = get_or_create_mfa_secret() if MFA_ENABLED else None
+# Get MFA secret from environment variable (persists across deployments)
+# If not set, generate one and show it in logs for user to save
+if os.environ.get('MFA_SECRET'):
+    MFA_SECRET = os.environ.get('MFA_SECRET')
+else:
+    # Generate a new secret (this will change on each deployment unless saved to env)
+    MFA_SECRET = pyotp.random_base32()
+    print("="*70)
+    print("⚠️  MFA SECRET NOT SET IN ENVIRONMENT!")
+    print("="*70)
+    print(f"Add this to Render environment variables:")
+    print(f"MFA_SECRET={MFA_SECRET}")
+    print("="*70)
 
 # Initialize Anthropic client
 if ANTHROPIC_API_KEY:
