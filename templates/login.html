@@ -128,6 +128,20 @@
                 required 
                 autofocus
             >
+            {% if mfa_enabled and show_mfa %}
+            <input 
+                type="text" 
+                name="mfa_code" 
+                placeholder="6-digit code from app" 
+                pattern="[0-9]{6}"
+                maxlength="6"
+                required
+                style="margin-top: 15px;"
+            >
+            <div style="font-size: 12px; color: #888; margin-top: 10px;">
+                Open Google Authenticator and enter the 6-digit code
+            </div>
+            {% endif %}
             <button type="submit">Unlock Forge 🔓</button>
         </form>
         
