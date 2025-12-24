@@ -245,33 +245,28 @@ def login():
         password = request.form.get('password')
         mfa_code = request.form.get('mfa_code')
         
-        # Check password first
+        # Check password
         if password != FORGE_PASSWORD:
-            return render_template('login.html', error='Invalid password', mfa_enabled=MFA_ENABLED)
-        
-        # Mark password as verified (allows MFA setup access)
-        session['password_verified'] = True
+            return render_template('login.html', 
+                                 error='Invalid password', 
+                                 mfa_enabled=MFA_ENABLED)
         
         # If MFA is enabled, verify the code
         if MFA_ENABLED:
             if not mfa_code:
-                # Show MFA input and setup link
                 return render_template('login.html', 
                                      error='MFA code required', 
-                                     mfa_enabled=MFA_ENABLED, 
-                                     show_mfa=True,
-                                     show_setup_link=True)
+                                     mfa_enabled=MFA_ENABLED)
             
             totp = pyotp.TOTP(MFA_SECRET)
             if not totp.verify(mfa_code, valid_window=1):
                 return render_template('login.html', 
-                                     error='Invalid MFA code', 
-                                     mfa_enabled=MFA_ENABLED, 
-                                     show_mfa=True,
-                                     show_setup_link=True)
+                                     error='Invalid MFA code - try the current code from your app', 
+                                     mfa_enabled=MFA_ENABLED)
         
         # Login successful
         session['logged_in'] = True
+        session['password_verified'] = True
         session['mfa_verified'] = True
         session.permanent = True
         return redirect(url_for('index'))
@@ -332,11 +327,23 @@ def chat():
     if not user_message:
         return jsonify({'error': 'No message provided'}), 400
     
+    # Load persistent conversation history
+    history_file = os.path.join(os.path.dirname(__file__), 'conversation_history.json')
+    persistent_history = []
+    
+    if os.path.exists(history_file):
+        try:
+            with open(history_file, 'r') as f:
+                persistent_history = json.load(f)
+        except:
+            persistent_history = []
+    
     # Add language context
     enhanced_message = f"[Language: {language}]\n\n{user_message}"
     
-    # Build conversation
-    messages = conversation_history + [
+    # Build conversation - use persistent history + current session
+    all_history = persistent_history[-40:] + conversation_history  # Keep last 40 from persistent
+    messages = all_history + [
         {"role": "user", "content": enhanced_message}
     ]
     
@@ -350,6 +357,17 @@ def chat():
         )
         
         assistant_message = response.content[0].text
+        
+        # Save to persistent history
+        persistent_history.append({"role": "user", "content": enhanced_message})
+        persistent_history.append({"role": "assistant", "content": assistant_message})
+        
+        # Keep only last 100 messages (50 exchanges)
+        persistent_history = persistent_history[-100:]
+        
+        # Save back to file
+        with open(history_file, 'w') as f:
+            json.dump(persistent_history, f, indent=2)
         
         return jsonify({
             'response': assistant_message,
@@ -420,6 +438,38 @@ def health():
         'timestamp': datetime.now().isoformat(),
         'api_configured': client is not None
     })
+
+@app.route('/api/history', methods=['GET'])
+@login_required
+def get_history():
+    """Get conversation history"""
+    try:
+        history_file = os.path.join(os.path.dirname(__file__), 'conversation_history.json')
+        
+        if not os.path.exists(history_file):
+            return jsonify({'history': []})
+        
+        with open(history_file, 'r') as f:
+            history = json.load(f)
+        
+        # Return last 20 messages for display
+        return jsonify({'history': history[-20:]})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/history/clear', methods=['POST'])
+@login_required
+def clear_history():
+    """Clear conversation history"""
+    try:
+        history_file = os.path.join(os.path.dirname(__file__), 'conversation_history.json')
+        
+        if os.path.exists(history_file):
+            os.remove(history_file)
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/snippets', methods=['GET'])
 @login_required
