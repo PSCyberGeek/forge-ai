@@ -281,15 +281,8 @@ def logout():
 
 @app.route('/mfa-setup')
 def mfa_setup():
-    """Show MFA setup page with QR code"""
-    if not MFA_ENABLED:
-        return redirect(url_for('index'))
-    
-    # Allow access if password was correct (even without MFA code yet)
-    if not session.get('password_verified') and not session.get('logged_in'):
-        return redirect(url_for('login'))
-    
-    # Generate QR code
+    """Show MFA setup page with QR code - accessible without login"""
+    # Generate QR code using MFA_SECRET
     totp_uri = pyotp.totp.TOTP(MFA_SECRET).provisioning_uri(
         name='Forge',
         issuer_name='Forge Coding Assistant'
