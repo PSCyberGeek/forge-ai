@@ -12,6 +12,10 @@ import secrets
 import sys
 from datetime import datetime, timedelta
 from functools import wraps
+import pyotp
+import qrcode
+import io
+import base64
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
@@ -22,6 +26,23 @@ Session(app)
 # Get API key and password from environment
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
 FORGE_PASSWORD = os.environ.get('FORGE_PASSWORD', 'forge123')  # Change this!
+
+# MFA Configuration
+MFA_ENABLED = os.environ.get('MFA_ENABLED', 'true').lower() == 'true'
+MFA_SECRET_FILE = os.path.join(os.path.dirname(__file__), 'mfa_secret.txt')
+
+def get_or_create_mfa_secret():
+    """Get existing MFA secret or create new one"""
+    if os.path.exists(MFA_SECRET_FILE):
+        with open(MFA_SECRET_FILE, 'r') as f:
+            return f.read().strip()
+    else:
+        secret = pyotp.random_base32()
+        with open(MFA_SECRET_FILE, 'w') as f:
+            f.write(secret)
+        return secret
+
+MFA_SECRET = get_or_create_mfa_secret() if MFA_ENABLED else None
 
 # Initialize Anthropic client
 if ANTHROPIC_API_KEY:
@@ -219,22 +240,67 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Login page"""
+    """Login page with MFA support"""
     if request.method == 'POST':
         password = request.form.get('password')
-        if password == FORGE_PASSWORD:
-            session['logged_in'] = True
-            session.permanent = True
-            return redirect(url_for('index'))
-        else:
-            return render_template('login.html', error='Invalid password')
-    return render_template('login.html')
+        mfa_code = request.form.get('mfa_code')
+        
+        # Check password first
+        if password != FORGE_PASSWORD:
+            return render_template('login.html', error='Invalid password', mfa_enabled=MFA_ENABLED)
+        
+        # If MFA is enabled, verify the code
+        if MFA_ENABLED:
+            if not mfa_code:
+                return render_template('login.html', error='MFA code required', mfa_enabled=MFA_ENABLED, show_mfa=True)
+            
+            totp = pyotp.TOTP(MFA_SECRET)
+            if not totp.verify(mfa_code, valid_window=1):
+                return render_template('login.html', error='Invalid MFA code', mfa_enabled=MFA_ENABLED, show_mfa=True)
+        
+        # Login successful
+        session['logged_in'] = True
+        session['mfa_verified'] = True
+        session.permanent = True
+        return redirect(url_for('index'))
+    
+    return render_template('login.html', mfa_enabled=MFA_ENABLED)
 
 @app.route('/logout')
 def logout():
     """Logout"""
     session.clear()
     return redirect(url_for('login'))
+
+@app.route('/mfa-setup')
+@login_required
+def mfa_setup():
+    """Show MFA setup page with QR code"""
+    if not MFA_ENABLED:
+        return redirect(url_for('index'))
+    
+    # Generate QR code
+    totp_uri = pyotp.totp.TOTP(MFA_SECRET).provisioning_uri(
+        name='Forge',
+        issuer_name='Forge Coding Assistant'
+    )
+    
+    # Create QR code image
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(totp_uri)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Convert to base64
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    img_base64 = base64.b64encode(buffer.getvalue()).decode()
+    
+    return render_template('mfa_setup.html', 
+                         qr_code=img_base64,
+                         secret=MFA_SECRET)
+
 
 @app.route('/api/chat', methods=['POST'])
 @login_required
