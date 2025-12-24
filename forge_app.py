@@ -340,6 +340,92 @@ def health():
         'api_configured': client is not None
     })
 
+@app.route('/api/snippets', methods=['GET'])
+@login_required
+def get_snippets():
+    """Get all saved snippets for the user"""
+    try:
+        snippets_file = os.path.join(os.path.dirname(__file__), 'snippets.json')
+        
+        if not os.path.exists(snippets_file):
+            return jsonify({'snippets': []})
+        
+        with open(snippets_file, 'r') as f:
+            snippets = json.load(f)
+        
+        return jsonify({'snippets': snippets})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/snippets', methods=['POST'])
+@login_required
+def save_snippet():
+    """Save a new code snippet"""
+    try:
+        data = request.json
+        name = data.get('name', '').strip()
+        code = data.get('code', '').strip()
+        language = data.get('language', 'python')
+        
+        if not name or not code:
+            return jsonify({'error': 'Name and code are required'}), 400
+        
+        snippets_file = os.path.join(os.path.dirname(__file__), 'snippets.json')
+        
+        # Load existing snippets
+        if os.path.exists(snippets_file):
+            with open(snippets_file, 'r') as f:
+                snippets = json.load(f)
+        else:
+            snippets = []
+        
+        # Create new snippet
+        new_snippet = {
+            'id': datetime.now().timestamp(),
+            'name': name,
+            'code': code,
+            'language': language,
+            'created_at': datetime.now().isoformat()
+        }
+        
+        snippets.append(new_snippet)
+        
+        # Save back to file
+        with open(snippets_file, 'w') as f:
+            json.dump(snippets, f, indent=2)
+        
+        return jsonify({
+            'success': True,
+            'snippet': new_snippet
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/snippets/<snippet_id>', methods=['DELETE'])
+@login_required
+def delete_snippet(snippet_id):
+    """Delete a snippet"""
+    try:
+        snippets_file = os.path.join(os.path.dirname(__file__), 'snippets.json')
+        
+        if not os.path.exists(snippets_file):
+            return jsonify({'error': 'No snippets found'}), 404
+        
+        with open(snippets_file, 'r') as f:
+            snippets = json.load(f)
+        
+        # Filter out the snippet to delete
+        snippet_id_float = float(snippet_id)
+        snippets = [s for s in snippets if s['id'] != snippet_id_float]
+        
+        # Save back
+        with open(snippets_file, 'w') as f:
+            json.dump(snippets, f, indent=2)
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
